@@ -3,145 +3,85 @@ import collections
 def readMap(file):
   almanac = dict()
   line = file.readline().strip()
-#   print(line[:-1])
+
   while True:
     line = file.readline().strip()
     if line == "":
       return  collections.OrderedDict(sorted(almanac.items()))
-    #sorted(almanac)
+    
     target, source, distance = [int(x) for x in line.split(' ') if x]
     almanac[(source, source + distance)] = (target, target + distance)
 
 
-
 def main():
-  file = open("day05/sample.txt", "r")
-#   file = open("day05/input.txt", "r")
+  # file = open("day05/sample.txt", "r")
+  file = open("day05/input.txt", "r")
   line = file.readline().split(':')[1].strip()
   line = [int(x) for x in line.split(' ') if x]
   it = iter(line)
-  seedlist = []
-  for x, y in zip(it, it):
-    seedlist.extend(range(x, x + y))
-  # print(f"{seedlist}")
+  seedlist = list(zip(it, it))
+  seedlist = [(l,l+r) for l,r in seedlist]
   file.readline()
-  
-#   almanac = []
-  mapping = readMap(file)
-  navigator = [readMap(file)]*6
-  for page in navigator:
-    almanac = mapping
-    mapping = collections.OrderedDict()
-    for interval in almanac.keys():
+
+  for page in range(0, 7):
+    almanac = readMap(file)
+    mapping = []
+    for interval in seedlist:
       intervalStart, intervalEnd = interval
-      source = almanac[interval]
-      sourceStart, sourceEnd = source
       
-      for target in page.keys():
-        interval = (intervalStart, intervalEnd)
-        source = (sourceStart, sourceEnd)
+      for target in almanac.keys():
         targetStart, targetEnd = target
-        destination = page[target]
+        destination = almanac[target]
         destinationStart, destinationEnd = destination
 
-        if (sourceStart, sourceEnd) == (targetStart, targetEnd):
-          mapping[interval] = page[target]
-          sourceStart = sourceEnd
+        if interval == target:
+          mapping.append(destination)
           intervalStart = intervalEnd
           break
-      
-        if sourceStart in range(targetStart, targetEnd):
-          startDiff = sourceStart - targetStart
-          if sourceEnd in range(targetStart, targetEnd) or sourceEnd == targetEnd:
-            endDiff = targetEnd - sourceEnd
-            iv = (intervalStart, intervalEnd)
+
+        if intervalStart in range(targetStart, targetEnd):
+          startDiff = intervalStart - targetStart
+
+          if intervalEnd in range(targetStart, targetEnd + 1):
+            # target..interval..interval..target
+            endDiff = targetEnd - intervalEnd
             ds = (destinationStart + startDiff, destinationEnd - endDiff)
-            mapping[iv] = ds
-            sourceStart = sourceEnd
-            intervalStart = intervalEnd
+            mapping.append(ds)
+            intervalStart = intervalEnd 
             break
           else:
-            endDiff = sourceEnd - targetEnd
-            iv = (intervalStart, intervalEnd - endDiff)
+            # target..interval..target..interval
             ds = (destinationStart + startDiff, destinationEnd)
-            mapping[iv] = ds
-            shift = targetEnd - sourceStart
-            sourceStart = targetEnd
-            intervalStart += shift
-            continue
-      
-        if targetStart in range(sourceStart, sourceEnd):
-          startDiff = targetStart - sourceStart
-          if targetEnd in range(sourceStart, sourceEnd) or targetEnd == sourceEnd:
-            endDiff = sourceEnd - targetEnd
-            iv = (intervalStart + startDiff, intervalEnd - endDiff)
+            mapping.append(ds)
+            intervalStart = targetEnd
+
+        if targetStart in range(intervalStart, intervalEnd):
+          startDiff = targetStart - intervalStart
+          
+          # interval..target..??..??
+          mapping.append((intervalStart, targetStart))
+
+          if targetEnd in range(intervalStart, intervalEnd + 1):
+            # interval..target..target..interval
+            endDiff = intervalEnd - targetEnd
             ds = (destinationStart, destinationEnd)
-            mapping[iv] = ds
-            shift = targetEnd - sourceStart
-            sourceStart = targetEnd
-            intervalStart += shift
+            mapping.append(ds)
+            intervalStart = targetEnd
             continue
           else:
-            endDiff = targetEnd - sourceEnd
-            iv = (intervalStart + startDiff, intervalEnd)
+            # interval..target..interval..target
+            endDiff = targetEnd - intervalEnd
             ds = (destinationStart, destinationEnd - endDiff)
-            mapping[iv] = ds
-            sourceStart = sourceEnd
+            mapping.append(ds)
             intervalStart = intervalEnd
             break
-    
+
       if intervalStart < intervalEnd:
-        iv = (intervalStart, intervalEnd)
-        ds = (sourceStart, sourceEnd)
-        mapping[iv] = ds
-    print(f"{almanac}")
-    print(f"{mapping}")
+        ds = (intervalStart, intervalEnd)
+        mapping.append(ds)
 
-    #   if sourceStart >= min(sourceEnd, targetEnd):
-        # break
-# def storage():
-#       if sourceStart in range(targetStart, targetEnd):
-#         stop = min(targetEnd, sourceEnd)
-#         startDiff = sourceStart - targetStart
-#         endDiff = targetEnd - sourceEnd
-#         # start = navigator[destination][0]
-#         # end = start + diff
-#         mapping[(intervalStart + startDiff, intervalEnd - endDiff)] = (destinationStart + startDiff, destinationEnd - endDiff)
-#         intervalStart += (stop - sourceStart)
-#         sourceStart = stop
-
-#       if sourceStart != targetEnd and (sourceEnd - 1) in range(targetStart, targetEnd):
-#         stop = max(sourceStart, targetStart)
-#         endDiff = targetEnd - sourceEnd
-#         # end = navigator[destination][1]
-#         # start = end - diff
-#         mapping[(intervalEnd - endDiff, intervalEnd)] = (destinationEnd - endDiff, destinationEnd)
-#         sourceEnd = stop
-    
-#     if sourceStart < sourceEnd:
-#       startDiff = sourceStart - almanac[interval][0]
-#       endDiff = almanac[interval][1] - sourceEnd
-#       mapping[(intervalStart + startDiff, intervalEnd - endDiff)] = (sourceStart, sourceEnd)
-#     print(f"{almanac}")
-#     print(f"{mapping}")
-
-
-def other():
-  for page in range(1, 7):
-    almanac.append(readMap(file))
-    # print(f"{page}: {almanac[page]}")
-    keys = sorted(almanac[page].keys())
-    for index, seed in enumerate(seedlist):
-      for source in keys:
-        target, sourceEnd, targetEnd = almanac[page][source]
-        if source <= seed and seed < sourceEnd:
-          seedlist[index] = target + (seed - source)
-          print(f"{index}: {source} < {seed} < {sourceEnd} => {target} < {seedlist[index]} < {targetEnd}")
-          break
-    #   print(f"{page}: {seed}")
-  print(f"{min(seedlist)}")
-
-
+    seedlist = sorted(mapping)
+  print(min(seedlist))
 
 
 if __name__ == "__main__":
